@@ -1,5 +1,5 @@
 import { PoissonDiskSampling } from "./PSD.js";
-import { smoothstep, clamp, fl, lerp, rotate } from "./utils.js";
+import { smoothstep, clamp, fl, lerp, rotate } from "../Global/utils.js";
 import { createNoise2D, createNoise3D } from "https://esm.sh/simplex-noise";
 import alea from "https://esm.sh/alea";
 

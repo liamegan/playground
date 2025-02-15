@@ -1,6 +1,6 @@
 import { Rectangle } from "./Rectangle.js";
 import { Quadtree } from "./Quadtree.js";
-import { smoothstep, clamp, fl, lerp, rotate } from "./utils.js";
+import { smoothstep, clamp, fl, lerp, rotate } from "../Global/utils.js";
 
 export class PoissonDiskSampling {
   constructor({
