@@ -49,7 +49,7 @@ async function main() {
     width: w,
     height: h,
     minRadius: 5,
-    maxRadius: 50,
+    maxRadius: 100,
     strategy: 0,
     drift: 0,
     pointsPerFrame: 2000,
@@ -104,11 +104,12 @@ async function main() {
     ctx.strokeStyle = "#333333";
     for (let i = 0; i < snakes.length; i++) {
       const s = snakes[i].path;
-      // console.log(s);
+      if (!s.length) continue;
+      console.log(s);
       ctx.beginPath();
-      for (let j = 0; j < s.length; j++) {
-        if (i == 0) ctx.moveTo(s[j].x, s[j].y);
-        else ctx.lineTo(s[j].x, s[j].y);
+      ctx.moveTo(s[0].x, s[0].y);
+      for (let j = 1; j < s.length; j++) {
+        ctx.lineTo(s[j].x, s[j].y);
       }
 
       ctx.stroke();

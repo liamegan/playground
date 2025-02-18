@@ -8,7 +8,7 @@ export class HatchFlow {
     width,
     height,
     points,
-    proximityThreshold = 4,
+    proximityThreshold = 5,
     selectionStrategy = 0,
     pointsPerFrame = 20,
     segmentLength = 250,
@@ -89,14 +89,14 @@ export class HatchFlow {
             //   }
             // }
           }
+          console.log(newSnakes);
+          draw(newSnakes);
         }
-
-        draw(newSnakes);
 
         if (this.running) {
           requestAnimationFrame(generateHatches);
         } else {
-          draw(this.snakes);
+          // draw(this.snakes);
           resolve(this.snakes);
         }
       };
@@ -203,8 +203,8 @@ export class HatchFlow {
     if (mode === "box") {
       for (let dx = -range; dx <= range; dx++) {
         for (let dy = -range; dy <= range; dy++) {
-          const nx = Math.round(pt.x) + dx;
-          const ny = Math.round(pt.y) + dy;
+          const nx = Math.floor(pt.x) + dx;
+          const ny = Math.floor(pt.y) + dy;
           if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
             if (this.bitmap[ny * this.width + nx]) {
               const distSquared = (pt.x - nx) ** 2 + (pt.y - ny) ** 2;
@@ -217,21 +217,21 @@ export class HatchFlow {
       }
     } else if (mode === "cone") {
       const steps = range;
-      const angleSpread = Math.PI / 3;
+      const angleSpread = Math.PI / 4; // 60 degrees
+
       for (let i = 1; i <= steps; i += 0.5) {
-        const spreadFactor = (i / steps) * angleSpread;
-        for (let offset of [
-          -spreadFactor,
-          -spreadFactor * 0.5,
-          -spreadFactor * 0.25,
-          0,
-          spreadFactor * 0.25,
-          spreadFactor * 0.5,
-          spreadFactor,
-        ]) {
-          const a = Math.atan2(direction.y, direction.x) + offset;
-          const nx = Math.round(pt.x + i * Math.cos(a));
-          const ny = Math.round(pt.y + i * Math.sin(a));
+        debug.distance = i;
+        const currentSpread = (i / steps) * angleSpread;
+        const raysAtThisDistance = 5 + Math.floor(i * 2);
+        const angleIncrement = (currentSpread * 2) / raysAtThisDistance;
+
+        for (let r = 0; r <= raysAtThisDistance; r++) {
+          const offset = -currentSpread + r * angleIncrement;
+          const baseAngle = Math.atan2(direction.y, direction.x);
+          const a = baseAngle + offset;
+
+          const nx = Math.floor(pt.x + i * Math.cos(a));
+          const ny = Math.floor(pt.y + i * Math.sin(a));
 
           if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
             if (this.bitmap[ny * this.width + nx]) {
