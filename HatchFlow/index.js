@@ -88,7 +88,7 @@ async function main() {
     height: h,
     points,
     fieldFunction: function (point) {
-      if (point.radius < 10) {
+      if (point.radius < 7) {
         return (
           Math.atan2(point.y - h / 2, point.x - w / 2) +
           noise2D2(point.x * 0.0005, point.y * 0.0005) +
@@ -115,6 +115,7 @@ async function main() {
     }
   };
   const allsnakes = await snakes.generate(drawSnakes);
+  ctx2.clearRect(0, 0, w, h);
 }
 
 setTimeout(main, 100);

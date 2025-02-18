@@ -217,18 +217,19 @@ export class HatchFlow {
       }
     } else if (mode === "cone") {
       const steps = range;
-      const angleSpread = Math.PI / 4;
-      const rayCount = 40;
-
-      // starts one unit away from the point
-      for (let i = 2; i <= steps; i++) {
-        debug.distance = i;
-        for (
-          let j = -angleSpread;
-          j <= angleSpread;
-          j += angleSpread / rayCount
-        ) {
-          const a = Math.atan2(direction.y, direction.x) + j;
+      const angleSpread = Math.PI / 3;
+      for (let i = 1; i <= steps; i += 0.5) {
+        const spreadFactor = (i / steps) * angleSpread;
+        for (let offset of [
+          -spreadFactor,
+          -spreadFactor * 0.5,
+          -spreadFactor * 0.25,
+          0,
+          spreadFactor * 0.25,
+          spreadFactor * 0.5,
+          spreadFactor,
+        ]) {
+          const a = Math.atan2(direction.y, direction.x) + offset;
           const nx = Math.round(pt.x + i * Math.cos(a));
           const ny = Math.round(pt.y + i * Math.sin(a));
 
