@@ -159,21 +159,6 @@ export class HatchFlow {
         np.y - 5
       );
     }
-    // Draw arrowhead
-    // const headlen = 10; // length of head in pixels
-    // const angle = Math.atan2(np.y - op.y, np.x - op.x);
-    // debugCanvas.cx.beginPath();
-    // debugCanvas.cx.moveTo(np.x, np.y);
-    // debugCanvas.cx.lineTo(
-    //   np.x - headlen * Math.cos(angle - Math.PI / 6),
-    //   np.y - headlen * Math.sin(angle - Math.PI / 6)
-    // );
-    // debugCanvas.cx.moveTo(np.x, np.y);
-    // debugCanvas.cx.lineTo(
-    //   np.x - headlen * Math.cos(angle + Math.PI / 6),
-    //   np.y - headlen * Math.sin(angle + Math.PI / 6)
-    // );
-    // debugCanvas.cx.stroke();
 
     if (
       !tooClose &&
