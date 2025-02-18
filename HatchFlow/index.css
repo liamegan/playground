@@ -1,6 +1,7 @@
 img {
   display: none;
 }
+
 body,
 html {
   align-items: center;
@@ -11,14 +12,23 @@ html {
   overflow: hidden;
   justify-content: center;
 }
-
-canvas {
+#container {
   aspect-ratio: 1;
   border: 1px solid #aaa;
   box-shadow: 0 0 10px #00000022;
   margin: 20px;
   width: 100%;
   height: auto;
-  max-height: 82vh;
-  max-width: 800px;
+  max-width: 1000px;
+  position: relative;
+}
+canvas {
+  aspect-ratio: 1;
+  max-height: 100%;
+  max-width: 100%;
+}
+.debug {
+  position: absolute;
+  top: 0;
+  left: 0;
 }

@@ -8,9 +8,10 @@ export class HatchFlow {
     width,
     height,
     points,
-    proximityThreshold = 8,
-    selectionStrategy = 1,
+    proximityThreshold = 4,
+    selectionStrategy = 0,
     pointsPerFrame = 20,
+    segmentLength = 250,
     fieldFunction = function (point) {
       let baseAngle =
         Math.atan2(point.y - this.height / 2, point.x - this.width / 2) +
@@ -30,6 +31,7 @@ export class HatchFlow {
       ? selectionStrategy
       : HatchFlow.STRATEGIES.RANDOM;
     this.fieldFunction = fieldFunction;
+    this.segmentLength = segmentLength;
 
     this.i = 0;
     this.running = false;
@@ -42,53 +44,50 @@ export class HatchFlow {
     return new Promise((resolve) => {
       this.running = true;
 
-      const generateHatches = () => {
+      let nextFrame = false;
+      window.addEventListener("click", () => {
+        nextFrame = true;
+      });
+
+      const generateHatches = async () => {
         let newSnakes = [];
 
-        for (let i = 0; i < this.pointsPerFrame; i++) {
-          let point = this.getNextPoint();
-          if (!point) {
-            this.running = false;
-            break;
-          }
-          let snake = [],
-            buffer = [];
+        if (nextFrame) {
+          // nextFrame = false;
+          debugCanvas.cx.clearRect(0, 0, this.width, this.height);
 
-          if (this.isTooClose(point)) {
-            i--;
-            continue;
-          }
-
-          let tip = { ...point };
-          let tail = { ...point };
-
-          let c, t, b;
-          c = t = b = false;
-          let growthTries = 0;
-          while (!c) {
-            if (growthTries++ > 1000) c = true;
-            if (snake.length > 500) c = true;
-            let tp, bp;
-            if (!t) tp = this.grow(tip, snake, buffer);
-            if (tp === true) t = true;
-            if (!b) bp = this.grow(tail, snake, buffer, -1);
-            if (bp === true) b = true;
-            if (tp && bp) c = true;
-            if (buffer.length > 5) {
-              const b = buffer.splice(0, 5);
-              for (const mark of b) {
-                this.markPoint(mark);
-              }
+          for (let i = 0; i < this.pointsPerFrame; i++) {
+            let point = this.getNextPoint();
+            if (!point) {
+              this.running = false;
+              break;
             }
-          }
 
-          if (snake.length) {
+            if (this.isTooClose(point)) {
+              i--;
+              continue;
+            }
+
+            debugCanvas.cx.beginPath();
+            debugCanvas.cx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+            debugCanvas.cx.fill();
+
+            const tip = await this.segment(point, 1);
+            const tail = await this.segment(point, -1);
+            const snake = { path: [...tail.reverse(), ...tip], point };
+
+            // if (snake.path.length > 10) {
             newSnakes.push(snake);
             this.snakes.push(snake);
 
-            for (const mark of buffer) {
-              this.markPoint(mark);
-            }
+            // for (const mark of snake) {
+            //   this.markPoint(mark);
+            // }
+            // } else {
+            //   for (const mark of snake) {
+            //     this.unmarkPoint(mark);
+            //   }
+            // }
           }
         }
 
@@ -106,25 +105,82 @@ export class HatchFlow {
     });
   }
 
+  async segment(point, direction = 1) {
+    let c = false,
+      growthTries = 0;
+
+    let segment = [],
+      buffer = [];
+    let p = { ...point };
+    let op = point;
+    while (!c) {
+      if (growthTries++ > 10000) c = true;
+      // if (segment.length > this.segmentLength) c = true;
+      const tp = this.grow(p, segment, buffer, direction);
+      if (tp === true) c = true;
+      // Update this to deal with different collision types
+      if (buffer.length > 1) {
+        const b = buffer.splice(0, 1);
+        for (const mark of b) {
+          this.markSegment(op, mark);
+          op = mark;
+        }
+      }
+    }
+
+    return segment;
+  }
+
   grow(point, snake, buffer, direction = 1) {
     const a = this.fieldFunction(point) - (direction === -1 ? Math.PI : 0);
     const mv = { x: Math.cos(a), y: Math.sin(a) };
     const op = { ...point };
     const np = { x: op.x + mv.x, y: op.y + mv.y };
+    const debug = {};
 
     point.x = np.x;
     point.y = np.y;
     // Skip if movement doesn’t cause a visible change
     const newPoint = { x: np.x, y: np.y };
-    const tooClose = this.isTooClose(newPoint, "cone", mv);
+    // const tooClose = this.isTooClose(newPoint);
+    const tooClose = this.isTooClose(newPoint, "cone", mv, debug);
+
+    debugCanvas.cx.strokeStyle = tooClose ? "red" : "green";
+    debugCanvas.cx.beginPath();
+    debugCanvas.cx.moveTo(op.x, op.y);
+    debugCanvas.cx.lineTo(op.x + mv.x * 30, op.y + mv.y * 30);
+    debugCanvas.cx.stroke();
+    if (tooClose) {
+      debugCanvas.cx.fillStyle = "black";
+      debugCanvas.cx.font = "16px Arial";
+      debugCanvas.cx.fillText(
+        `Distance: ${debug.distance}`,
+        np.x + 5,
+        np.y - 5
+      );
+    }
+    // Draw arrowhead
+    // const headlen = 10; // length of head in pixels
+    // const angle = Math.atan2(np.y - op.y, np.x - op.x);
+    // debugCanvas.cx.beginPath();
+    // debugCanvas.cx.moveTo(np.x, np.y);
+    // debugCanvas.cx.lineTo(
+    //   np.x - headlen * Math.cos(angle - Math.PI / 6),
+    //   np.y - headlen * Math.sin(angle - Math.PI / 6)
+    // );
+    // debugCanvas.cx.moveTo(np.x, np.y);
+    // debugCanvas.cx.lineTo(
+    //   np.x - headlen * Math.cos(angle + Math.PI / 6),
+    //   np.y - headlen * Math.sin(angle + Math.PI / 6)
+    // );
+    // debugCanvas.cx.stroke();
+
     if (
       !tooClose &&
       Math.floor(op.x) !== Math.floor(np.x) &&
       Math.floor(op.y) !== Math.floor(np.y)
     ) {
-      if (direction === -1) snake.splice(0, 0, newPoint);
-      else snake.push(newPoint);
-
+      snake.push(newPoint);
       buffer.push(newPoint);
     }
 
@@ -141,7 +197,7 @@ export class HatchFlow {
     }
   }
 
-  isTooClose(pt, mode = "box", direction = { x: 0, y: 0 }) {
+  isTooClose(pt, mode = "box", direction = { x: 0, y: 0 }, debug = {}) {
     const range = this.proximityThreshold;
 
     if (mode === "box") {
@@ -161,19 +217,18 @@ export class HatchFlow {
       }
     } else if (mode === "cone") {
       const steps = range;
-      const angleSpread = Math.PI / 3;
-      for (let i = 1; i <= steps; i += 0.5) {
-        const spreadFactor = (i / steps) * angleSpread;
-        for (let offset of [
-          -spreadFactor,
-          -spreadFactor * 0.5,
-          -spreadFactor * 0.25,
-          0,
-          spreadFactor * 0.25,
-          spreadFactor * 0.5,
-          spreadFactor,
-        ]) {
-          const a = Math.atan2(direction.y, direction.x) + offset;
+      const angleSpread = Math.PI / 4;
+      const rayCount = 40;
+
+      // starts one unit away from the point
+      for (let i = 2; i <= steps; i++) {
+        debug.distance = i;
+        for (
+          let j = -angleSpread;
+          j <= angleSpread;
+          j += angleSpread / rayCount
+        ) {
+          const a = Math.atan2(direction.y, direction.x) + j;
           const nx = Math.round(pt.x + i * Math.cos(a));
           const ny = Math.round(pt.y + i * Math.sin(a));
 
@@ -189,10 +244,52 @@ export class HatchFlow {
   }
 
   markPoint({ x, y }) {
-    x = Math.round(x);
-    y = Math.round(y);
-    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-      this.bitmap[y * this.width + x] = 1;
+    x = Math.floor(x);
+    y = Math.floor(y);
+    const size = 1; // Increase the size of the marked area
+    for (let dx = -size; dx <= size; dx++) {
+      for (let dy = -size; dy <= size; dy++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+          this.bitmap[ny * this.width + nx] = 1;
+        }
+      }
+    }
+  }
+  // After: Example using a Bresenham line routine
+  markSegment(oldPoint, newPoint) {
+    // A simple Bresenham line algorithm
+    // Convert to integers for Bresenham
+    let x0 = Math.floor(oldPoint.x);
+    let y0 = Math.floor(oldPoint.y);
+    const x1 = Math.floor(newPoint.x);
+    const y1 = Math.floor(newPoint.y);
+
+    const dx = Math.abs(x1 - x0);
+    const sx = x0 < x1 ? 1 : -1;
+    const dy = -Math.abs(y1 - y0);
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+
+    while (true) {
+      // Mark the pixel at (x0, y0).
+      if (x0 >= 0 && x0 < this.width && y0 >= 0 && y0 < this.height) {
+        this.markPoint({ x: x0, y: y0 });
+      }
+
+      // If we reached the endpoint, break
+      if (x0 === x1 && y0 === y1) break;
+
+      const e2 = 2 * err;
+      if (e2 >= dy) {
+        err += dy;
+        x0 += sx;
+      }
+      if (e2 <= dx) {
+        err += dx;
+        y0 += sy;
+      }
     }
   }
 }

@@ -57,10 +57,19 @@ async function main() {
   });
 
   let c = document.createElement("canvas");
+  let c2 = document.createElement("canvas");
   c.width = w;
   c.height = h;
-  document.body.appendChild(c);
+  c2.width = w;
+  c2.height = h;
+  container.appendChild(c);
+  container.appendChild(c2);
   let ctx = c.getContext("2d");
+  let ctx2 = c2.getContext("2d");
+  c2.className = "debug";
+  c2.id = "debugCanvas";
+  c2.cx = ctx2;
+  console.log(ctx === ctx2);
   const draw = (points) => {
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
@@ -90,15 +99,18 @@ async function main() {
     },
   });
   ctx.clearRect(0, 0, w, h);
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 2;
   const drawSnakes = (snakes) => {
+    ctx.strokeStyle = "#333333";
     for (let i = 0; i < snakes.length; i++) {
-      const s = snakes[i];
+      const s = snakes[i].path;
+      // console.log(s);
       ctx.beginPath();
       for (let j = 0; j < s.length; j++) {
         if (i == 0) ctx.moveTo(s[j].x, s[j].y);
         else ctx.lineTo(s[j].x, s[j].y);
       }
+
       ctx.stroke();
     }
   };
