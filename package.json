@@ -4,12 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "vite $npm_config_root",
+    "build": "vite build $npm_config_root",
+    "preview": "vite preview $npm_config_root",
     "gendev": "http-server -p 8080",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Liam Egan <Liam@wethecollective.com>",
   "license": "ISC",
+  "devDependencies": {
+    "vite": "^6.3.1"
+  },
   "dependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "wtc-math": "~1.0.20"
   }
 }
