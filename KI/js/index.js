@@ -1,4 +1,4 @@
-// js/index.js
+import { logGPUBuffer } from "./utils";
 
 async function main() {
   // 1. Initialize WebGPU
@@ -21,30 +21,42 @@ async function main() {
   gpuContext.configure({
     device: device,
     format: presentationFormat,
-    alphaMode: "opaque",
+    alphaMode: "premultiplied",
   });
 
   // Simulation Parameters
   const simParams = {
     canvasWidth: canvas.width,
     canvasHeight: canvas.height,
-    dampingFactor: 0.8,
+    dampingFactor: 0.55,
     pointSize: 10.0,
   };
 
   // 2. Point Data
-  const initialPoints = [
-    { pos: { x: 50, y: 50 }, oldPos: { x: 49, y: 48 } },
-    {
-      pos: { x: canvas.width - 50, y: 100 },
-      oldPos: { x: canvas.width - 51, y: 98 },
-    },
-    {
-      pos: { x: 150, y: canvas.height - 50 },
-      oldPos: { x: 148, y: canvas.height - 51 },
-    },
-  ];
-  const numPoints = initialPoints.length;
+  // const initialPoints = [
+  //   { pos: { x: 50, y: 50 }, oldPos: { x: 45, y: 48 } },
+  //   {
+  //     pos: { x: canvas.width - 50, y: 100 },
+  //     oldPos: { x: canvas.width - 51, y: 98 },
+  //   },
+  //   {
+  //     pos: { x: 150, y: canvas.height - 50 },
+  //     oldPos: { x: 148, y: canvas.height - 51 },
+  //   },
+  // ];
+  const initialPoints = [];
+  const numPoints = 1000;
+  for (let i = 0; i < numPoints; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const oldX = x + (Math.random() - 0.5) * 2; // Random old position
+    const oldY = y + (Math.random() - 0.5) * 2; // Random old position
+    initialPoints.push({
+      pos: { x, y },
+      oldPos: { x: oldX, y: oldY },
+    });
+  }
+  // const numPoints = initialPoints.length;
 
   const positionsData = new Float32Array(numPoints * 2); // For initial upload
   const oldPositionsDataArr = new Float32Array(numPoints * 2); // JS array for old positions
@@ -121,7 +133,10 @@ async function main() {
       {
         // @binding(2) uniformBuffer (SimParams)
         binding: 2,
-        visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, // Vertex shader also uses this
+        visibility:
+          GPUShaderStage.COMPUTE |
+          GPUShaderStage.VERTEX |
+          GPUShaderStage.FRAGMENT, // Vertex shader also uses this
         buffer: { type: "uniform" },
       },
     ],
@@ -185,11 +200,31 @@ async function main() {
     fragment: {
       module: pointRendererShaderModule,
       entryPoint: "fs_main",
-      targets: [{ format: presentationFormat }],
+      targets: [
+        {
+          format: presentationFormat,
+          blend: {
+            // Add this blend configuration
+            color: {
+              srcFactor: "one", // Since shader output is premultiplied: (srcR*srcA, srcG*srcA, srcB*srcA)
+              dstFactor: "one-minus-src-alpha", // dstRGB * (1 - srcA)
+              operation: "add", // finalRGB = (srcR*srcA) + dstRGB * (1 - srcA)
+            },
+            alpha: {
+              srcFactor: "one", // Or "one" if accumulating alpha, "zero" if source alpha overwrites
+              dstFactor: "one-minus-src-alpha", // Common setting for typical alpha blending
+              operation: "add", // finalAlpha = srcA + dstA * (1 - srcA)
+            },
+          },
+        },
+      ],
     },
     primitive: {
       topology: "triangle-list",
     },
+    // multisample: {
+    //   count: 4,
+    // },
   });
 
   // 9. Create Bind Group for Compute (and for uniforms in Render)
@@ -247,6 +282,9 @@ async function main() {
     renderPass.setVertexBuffer(0, renderReadPositionsBuffer); // Use the dedicated render buffer
     renderPass.draw(6, numPoints, 0, 0);
     renderPass.end();
+
+    // console.clear();
+    // logGPUBuffer(device, computeWritePositionsBuffer).catch(console.error);
 
     device.queue.submit([commandEncoder.finish()]);
 

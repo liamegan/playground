@@ -23,9 +23,9 @@ html {
   position: relative;
 }
 canvas {
-  aspect-ratio: 1;
+  /* aspect-ratio: 1;
   max-height: 100%;
-  max-width: 100%;
+  max-width: 100%; */
 }
 .debug {
   position: absolute;

@@ -18,12 +18,17 @@ struct SimParams {
 //   // @location(0) color: vec4<f32>, // Example if passing color
 // };
 
+struct FragmentInput {
+  @builtin(position) frag_coord: vec4<f32>, // Fragment coordinates
+  @location(1) uv: vec2<f32>, // UV coordinates for texture sampling
+};
+
 // --- Vertex Shader ---
 @vertex
 fn vs_main(
   @builtin(vertex_index) vertex_idx: u32,
   @location(0) instance_center_pixels: vec2<f32> // Per-instance data: point's center
-) -> @builtin(position) vec4<f32> {
+) -> FragmentInput {
   let half_point_size = params.point_size * 0.5;
 
   // Pre-defined offsets for a quad centered at (0,0)
@@ -38,18 +43,35 @@ fn vs_main(
     vec2<f32>( half_point_size,  half_point_size), // v3 (Top-right)
     vec2<f32>(-half_point_size,  half_point_size)  // v2 (Top-left)
   );
+  var uvs = array<vec2<f32>, 6>(
+    vec2<f32>(0.0, 0.0), // v0
+    vec2<f32>(1.0, 0.0), // v1
+    vec2<f32>(0.0, 1.0), // v2
+
+    vec2<f32>(1.0, 0.0), // v1
+    vec2<f32>(1.0, 1.0), // v3
+    vec2<f32>(0.0, 1.0)  // v2
+  );
 
   let offset_pos = offsets[vertex_idx];
   let final_pixel_pos = instance_center_pixels + offset_pos;
 
+  let uv = uvs[vertex_idx];
+
   let ndc_pos_x = (final_pixel_pos.x / params.canvas_dims.x) * 2.0 - 1.0;
   let ndc_pos_y = ((final_pixel_pos.y / params.canvas_dims.y) * 2.0 - 1.0) * -1.0; // Flip Y
 
-  return vec4<f32>(ndc_pos_x, ndc_pos_y, 0.0, 1.0);
+  var opt: FragmentInput;
+  opt.frag_coord = vec4<f32>(ndc_pos_x, ndc_pos_y, 0.0, 1.0);
+  opt.uv = uv;
+
+  return opt;
 }
 
 // --- Fragment Shader ---
 @fragment
-fn fs_main() -> @location(0) vec4<f32> {
-  return vec4<f32>(0.8, 0.2, 0.2, 1.0); // Reddish color for points
+fn fs_main(fsInput: FragmentInput) -> @location(0) vec4<f32> {
+  let p = fsInput.uv-.5;
+  let c = smoothstep(.45, .4, length(p));
+  return vec4<f32>(c, .5, 0.2, 1.)*c;
 }
