@@ -1,110 +1,83 @@
-import { rand, initializeRandom } from "./random";
-import { ParticleSystem } from "./ParticleSystem";
-import { Stage } from "./Stage";
 import { Renderer } from "./Renderer";
-import { ColorManager } from "./ColorManager";
-import { generateCreatures } from "./CreatureGenerator";
-import { intToRGBString } from "./utils";
-import { BoundingBox } from "./BoundingBox";
-import { symmetricParticleForce } from "./Behaviours";
+import { Vector } from "./Vector";
 
-initializeRandom("My name is Liam");
-
-// console.log(rand(), rand(), rand());
-
-// const a = new Vector3(1, 2, 3);
-// const b = new Vector3(4, 5, 6);
-// const avg = Vector3.average([a, b]);
-// (window.a = a), (window.b = b);
-// console.log(avg, a.distXY(b));
-
-// Setup system dimensions.
-const systemWidth = 180;
-const systemHeight = 180;
-
-// Create a new ParticleSystem with a BoundingBox.
-const particleSystem = new ParticleSystem(
-  new BoundingBox(systemWidth, systemHeight),
-  10
-);
-particleSystem.setMaxForce(2);
-
-// Add various interactions and behaviors.
-particleSystem.addSymmetricParticleInteraction(symmetricParticleForce(10, 1), {
-  or: ["dust"],
-});
-// (Many other interactions are added here...)
-
-// Create a Stage container for creatures.
-const stage = new Stage(particleSystem);
-
-// Create a ColorManager.
-const colorManager = new ColorManager();
-document.body.style.backgroundColor = intToRGBString(
-  colorManager.get("background2")
-);
-
-// Create the renderer.
-const renderer = new Renderer(
-  systemWidth,
-  systemHeight,
-  5,
-  colorManager.get("max_line_thickness"),
-  () => colorManager.get("background1"),
-  () => colorManager.get("background2")
-);
-
-// Generate creatures into the system (using the weighted generator options).
-generateCreatures(particleSystem, stage, colorManager, renderer);
-
-// Main animation loop.
-let lastTime;
-function animationLoop() {
-  renderer.clear();
-  let dt = Date.now() - lastTime;
-  lastTime = Date.now();
-  let steps = Math.max(Math.min(50 / dt, 10), 1);
-
-  // Optionally process mouse/touch interactions...
-
-  for (let i = 0; i < steps; i++) {
-    particleSystem.update();
-    stage.update();
+document.addEventListener("DOMContentLoaded", () => {
+  let canvas = document.getElementById("main-canvas");
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.id = "main-canvas";
+    container.appendChild(canvas);
   }
 
-  stage.draw(renderer);
-  // Adjust renderer scale based on window dimensions.
-  if (window.innerWidth < window.innerHeight) {
-    renderer.setScale(window.innerWidth / renderer.width);
-  } else {
-    renderer.setScale(window.innerHeight / renderer.height);
-  }
-  renderer.render();
-  requestAnimationFrame(animationLoop);
-}
-animationLoop();
+  try {
+    const renderer = new Renderer(
+      canvas,
+      800, // internal rendering width
+      600, // internal rendering height
+      window.devicePixelRatio || 1,
+      2, // max line thickness
+      () => 0x102030, // Function returning background color 1 (hex)
+      () => 0x304050 // Function returning background color 2 (hex)
+    );
 
-// Event listeners to handle user interactions.
-renderer.canvas.addEventListener("mousedown", (e) => {
-  mouseActive = true;
-});
-renderer.canvas.addEventListener(
-  "touchstart",
-  (e) => {
-    mouseActive = true;
-  },
-  false
-);
-renderer.canvas.addEventListener("mousemove", (e) => {
-  // Map mouse position to simulation coordinates.
-});
-renderer.canvas.addEventListener(
-  "touchmove",
-  (e) => {
-    // Map touch position to simulation coordinates.
-  },
-  false
-);
-window.addEventListener("mouseup", (e) => {
-  mouseActive = false;
+    renderer.setBackgroundSdfCircles([
+      { position: new Vector(200, 200), radius: 50 },
+      { position: new Vector(600, 400), radius: 80 },
+    ]);
+
+    renderer.setCanvasDisplayDimensions(800, 600); // CSS display size
+
+    let angle = 0;
+
+    function animate() {
+      renderer.clearGeometryBuffers(); // Prepare for new frame's geometry
+
+      // --- Draw dynamic stuff ---
+      angle += 0.01;
+      const movingRectX = 400 + Math.sin(angle) * 100;
+      renderer.drawRectangle(
+        movingRectX - 25,
+        50,
+        movingRectX + 25,
+        100,
+        0xff0000
+      ); // red
+
+      renderer.drawLine(
+        new Vector(100, 150),
+        new Vector(300 + Math.cos(angle * 2) * 50, 250),
+        3,
+        0x00ff00
+      ); // green
+      renderer.drawCircle(
+        new Vector(400, 300),
+        30 + Math.sin(angle * 0.5) * 20,
+        0x0000ff
+      ); // blue
+      renderer.drawPoint(
+        new Vector(500, 100 + Math.cos(angle) * 20),
+        5,
+        0xffff00
+      ); // yellow
+
+      const polyPoints = [
+        new Vector(600, 100),
+        new Vector(700 + Math.sin(angle) * 30, 50),
+        new Vector(650, 150 + Math.cos(angle) * 30),
+      ];
+      renderer.drawShape(polyPoints, 0xff00ff); // magenta
+
+      renderer.renderFrame(); // Renders background, then geometry, then scales to canvas
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  } catch (error) {
+    console.error("Renderer initialization or animation failed:", error);
+    const errorDiv = document.createElement("div");
+    errorDiv.textContent =
+      "Error initializing WebGL renderer: " + error.message;
+    container.prepend(errorDiv);
+  }
 });
