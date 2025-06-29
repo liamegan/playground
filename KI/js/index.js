@@ -28,8 +28,9 @@ async function main() {
   const simParams = {
     canvasWidth: canvas.width,
     canvasHeight: canvas.height,
-    dampingFactor: 0.55,
+    dampingFactor: 0.95,
     pointSize: 10.0,
+    particle_restitution: 0.4, // New: For inter-particle bounce (0.0 to 1.0)
   };
 
   // 2. Point Data
@@ -101,7 +102,7 @@ async function main() {
   );
   oldPositionsBuffer.unmap();
 
-  const uniformBufferSize = 16;
+  const uniformBufferSize = 32;
   const uniformBuffer = device.createBuffer({
     size: uniformBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -112,6 +113,7 @@ async function main() {
     simParams.canvasHeight,
     simParams.dampingFactor,
     simParams.pointSize,
+    simParams.particle_restitution,
   ]);
   device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 

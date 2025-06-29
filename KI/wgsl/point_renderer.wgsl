@@ -4,6 +4,7 @@ struct SimParams {
   canvas_dims: vec2<f32>,
   damping_factor: f32, // Not used in rendering shaders, but part of the shared struct
   point_size: f32,
+  particle_restitution: f32, // New: For inter-particle bounce
 };
 
 // This bind group layout is expected by both the vertex shader here

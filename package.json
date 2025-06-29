@@ -13,6 +13,7 @@
   "author": "Liam Egan <Liam@wethecollective.com>",
   "license": "ISC",
   "devDependencies": {
+    "@webgpu/types": "~0.1.60",
     "vite": "^6.3.1"
   },
   "dependencies": {
